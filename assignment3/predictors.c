@@ -87,8 +87,32 @@ void always_x(bool p) {
 }
 
 /* Implement assignment 1 here */
-void assignment_1_simple() {
-  always_x(false);
+void assignment_1_simple() { 
+  enum { TAKEN =0x01, NOT_TAKEN =0x00, 
+         CORRECT =0x10 } state =TAKEN | CORRECT;
+       
+  uint32_t addr =0;
+  bool actual, prediction;
+  
+  while( predictor_getState( ) != DONE ) {
+  
+    if( predictor_getNextBranch( &addr ) )
+        fprintf( stderr, "ERROR: couldn't get next branch.\n" );
+        
+    prediction = (state & TAKEN);
+
+    if( predictor_predict( prediction, &actual ) )
+        fprintf( stderr, "ERROR: couldn't call predictor_predict( ).\n" );
+  
+    if( prediction != actual ) {
+        if( !(state & CORRECT) )
+            state =(~state) & TAKEN;
+        else
+            state &= ~CORRECT;
+    }
+    else
+        state |= CORRECT;
+  }
 }
 
 /* Implement assignment 2 here */
