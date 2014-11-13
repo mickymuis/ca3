@@ -6,6 +6,21 @@
 #include "predictors.h"
 #include "framework.h"
 
+#define PUSH_FRONT(q, b) (q << 1) | (b ? 0x1 : 0x0)
+
+void pushFront_8( bitQueue8_t* q, bool b ) {
+    (*q) = PUSH_FRONT( (*q), b );
+}
+
+void pushFront_16( bitQueue16_t* q, bool b ) {
+    (*q) = PUSH_FRONT( (*q), b );
+}
+
+void pushFront_32( bitQueue32_t* q, bool b ) {
+    (*q) = PUSH_FRONT( (*q), b );
+}
+
+
 /* Random prediction */
 void random_predictor() {
     /* Variable to store the prediction you predict for this branch. */
@@ -117,7 +132,46 @@ void assignment_1_simple() {
 
 /* Implement assignment 2 here */
 void assignment_2_GAg(int history) {
-  always_x(false);
+/*  enum STATE { TAKEN =0x01, NOT_TAKEN =0x00, 
+         CORRECT =0x10 };*/
+         
+  // The Branch History Register
+  bitQueue16_t branchRegister =0; // this is the 'G' in Gag
+         
+  // The Pattern History Table
+  const unsigned int k = 1 << 16; // 16 bit queue length, table has 2^16 entries
+  counter_t patternTable[k]; // This is the 'g' in Gag
+  
+  // Initialize the PHT
+  for( unsigned int i =0; i < k; i++ ) {
+    patternTable[i] =1;
+  }
+       
+  uint32_t addr =0;
+  bool actual, prediction;
+  
+  while( predictor_getState( ) != DONE ) {
+  
+    if( predictor_getNextBranch( &addr ) )
+        fprintf( stderr, "ERROR: couldn't get next branch.\n" );
+        
+    // Use the most recent pattern in the Branch Register 
+    // to lookup a prediction in the Pattern Table
+    prediction = patternTable[branchRegister] > 2;
+
+    if( predictor_predict( prediction, &actual ) )
+        fprintf( stderr, "ERROR: couldn't call predictor_predict( ).\n" );
+    
+    // Update the Pattern History Table to reflect the outcome
+    if( actual && ( patternTable[branchRegister] < 3 ) )
+        patternTable[branchRegister]++;
+    else if( !actual && ( patternTable[branchRegister] > 0 ) )
+        patternTable[branchRegister]--;
+    
+    // Add the actual outcome to the current pattern in the Branch History Register
+    pushFront_16( &branchRegister, actual );
+    
+  }
 }
 
 /* Implement assignment 3 here */

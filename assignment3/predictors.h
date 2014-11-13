@@ -3,6 +3,33 @@
 #define PREDICTORS_H
 
 #include <stdbool.h>
+#include <inttypes.h>
+
+/* Simple types representing a queue of bits 
+ *
+ * MSB, least recently added bit | 000 ... 000 | most recently added bit, LSB
+ */
+typedef uint8_t  bitQueue8_t;
+typedef uint16_t bitQueue16_t;
+typedef uint32_t bitQueue32_t;
+
+typedef uint64_t bitQueue_t; // general oversized type.
+
+/* Substitute for a 2 bit counter */
+typedef int8_t counter_t;
+
+/* pushFront_*
+ * Adds a bit to the head of the queue (the least significant bit)
+ * Discards the most significant bit.
+ */
+void pushFront_8( bitQueue8_t*, bool );
+void pushFront_16( bitQueue16_t*, bool );
+void pushFront_32( bitQueue32_t*, bool );
+
+/* pushFront() - will replace the above
+*/
+//void pushFront( bitQueue_t*, uint16_t length, bool );
+
 
 /* Random prediction */
 void random_predictor();
