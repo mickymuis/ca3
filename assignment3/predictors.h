@@ -26,9 +26,11 @@ void pushFront_8( bitQueue8_t*, bool );
 void pushFront_16( bitQueue16_t*, bool );
 void pushFront_32( bitQueue32_t*, bool );
 
-/* pushFront() - will replace the above
-*/
-//void pushFront( bitQueue_t*, uint16_t length, bool );
+/* pushFront() - pushes to a bit queue of up to 64 bits length
+ * Adds a bit to the head of the queue (the least significant bit)
+ * Discards the most significant bit.
+ */
+void pushFront( bitQueue_t*, uint16_t length, bool );
 
 
 /* Random prediction */

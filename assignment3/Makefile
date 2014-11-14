@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=c99 -O -Wall -D_POSIX_C_SOURCE=200809L -g
+CFLAGS = -std=c99 --debug -Wall -D_POSIX_C_SOURCE=200809L -g
 TRACE = sample
 ARGS = -r -s
 

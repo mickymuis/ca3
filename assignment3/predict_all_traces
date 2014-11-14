@@ -16,9 +16,9 @@ do
   do
     PRED_NAME=${PRED_NAMES[$P_NUM]} 
     PRED_OPTION=${PRED_OPTIONS[$P_NUM]}
-    ./predictor -i $FILENAME $PRED_OPTION -s
-    ./predictor -i $FILENAME $PRED_OPTION -b > results/$TRACENAME-$PRED_NAME-basic.txt
-    ./predictor -i $FILENAME $PRED_OPTION -a > results/$TRACENAME-$PRED_NAME-advanced.txt
+    ./predictor -i $FILENAME $PRED_OPTION -s $@
+    ./predictor -i $FILENAME $PRED_OPTION -b $@ > results/$TRACENAME-$PRED_NAME-basic.txt
+    ./predictor -i $FILENAME $PRED_OPTION -a $@ > results/$TRACENAME-$PRED_NAME-advanced.txt
   done
   rm $FILENAME
 done

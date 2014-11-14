@@ -20,6 +20,14 @@ void pushFront_32( bitQueue32_t* q, bool b ) {
     (*q) = PUSH_FRONT( (*q), b );
 }
 
+void pushFront( bitQueue_t* q, uint16_t length, bool b ) {
+    (*q) = PUSH_FRONT( (*q), b );
+    (*q) &= (1 << length) -1;
+  
+  // this is push-back
+  //  (*q) = ((*q) >> 1) | ( (b ? 0x1 : 0x0) << (length -1) );
+}
+
 
 /* Random prediction */
 void random_predictor() {
@@ -103,14 +111,14 @@ void always_x(bool p) {
 
 /* Implement assignment 1 here */
 void assignment_1_simple() { 
-  enum { TAKEN =0x01, NOT_TAKEN =0x00, 
+    enum { TAKEN =0x01, NOT_TAKEN =0x00, 
          CORRECT =0x10 } state =TAKEN | CORRECT;
        
-  uint32_t addr =0;
-  bool actual, prediction;
-  
-  while( predictor_getState( ) != DONE ) {
-  
+    uint32_t addr =0;
+    bool actual, prediction;
+
+    while( predictor_getState( ) != DONE ) {
+
     if( predictor_getNextBranch( &addr ) )
         fprintf( stderr, "ERROR: couldn't get next branch.\n" );
         
@@ -118,7 +126,7 @@ void assignment_1_simple() {
 
     if( predictor_predict( prediction, &actual ) )
         fprintf( stderr, "ERROR: couldn't call predictor_predict( ).\n" );
-  
+
     if( prediction != actual ) {
         if( !(state & CORRECT) )
             state =(~state) & TAKEN;
@@ -127,51 +135,59 @@ void assignment_1_simple() {
     }
     else
         state |= CORRECT;
-  }
+    }
 }
 
 /* Implement assignment 2 here */
 void assignment_2_GAg(int history) {
-/*  enum STATE { TAKEN =0x01, NOT_TAKEN =0x00, 
+
+    /*  enum STATE { TAKEN =0x01, NOT_TAKEN =0x00, 
          CORRECT =0x10 };*/
          
-  // The Branch History Register
-  bitQueue16_t branchRegister =0; // this is the 'G' in Gag
-         
-  // The Pattern History Table
-  const unsigned int k = 1 << 16; // 16 bit queue length, table has 2^16 entries
-  counter_t patternTable[k]; // This is the 'g' in Gag
-  
-  // Initialize the PHT
-  for( unsigned int i =0; i < k; i++ ) {
-    patternTable[i] =1;
-  }
-       
-  uint32_t addr =0;
-  bool actual, prediction;
-  
-  while( predictor_getState( ) != DONE ) {
-  
-    if( predictor_getNextBranch( &addr ) )
-        fprintf( stderr, "ERROR: couldn't get next branch.\n" );
-        
-    // Use the most recent pattern in the Branch Register 
-    // to lookup a prediction in the Pattern Table
-    prediction = patternTable[branchRegister] > 2;
+    // The Branch History Register
+    const int queueLength =history <= 64 ? history : 64;
+    bitQueue_t branchRegister =0; // this is the 'G' in Gag
+             
+    // The Pattern History Table
+    const uint64_t k = 1 << queueLength; // n bit queue length, table has 2^n entries
+    counter_t patternTable[k]; // This is the 'g' in Gag
+    
+    printf( "Gag: Branch History Register length is %d bits, %d PHT entries\n", queueLength, k );
 
-    if( predictor_predict( prediction, &actual ) )
-        fprintf( stderr, "ERROR: couldn't call predictor_predict( ).\n" );
-    
-    // Update the Pattern History Table to reflect the outcome
-    if( actual && ( patternTable[branchRegister] < 3 ) )
-        patternTable[branchRegister]++;
-    else if( !actual && ( patternTable[branchRegister] > 0 ) )
-        patternTable[branchRegister]--;
-    
-    // Add the actual outcome to the current pattern in the Branch History Register
-    pushFront_16( &branchRegister, actual );
-    
-  }
+    // Initialize the PHT
+    for( uint64_t i =0; i < k; i++ ) {
+        patternTable[i] =2;
+    }
+       
+    uint32_t addr =0;
+    bool actual, prediction;
+
+    while( predictor_getState( ) != DONE ) {
+
+        if( predictor_getNextBranch( &addr ) )
+            fprintf( stderr, "ERROR: couldn't get next branch.\n" );
+            
+        // Use the most recent pattern in the Branch Register 
+        // to lookup a prediction in the Pattern Table
+        prediction = patternTable[branchRegister] > 2;
+
+        if( predictor_predict( prediction, &actual ) )
+            fprintf( stderr, "ERROR: couldn't call predictor_predict( ).\n" );
+            
+        //printf( "%x\n", branchRegister );
+
+        // Update the Pattern History Table to reflect the outcome
+        if( actual && ( patternTable[branchRegister] < 3 ) )
+            patternTable[branchRegister]++;
+        else if( !actual && ( patternTable[branchRegister] > 0 ) )
+            patternTable[branchRegister]--;
+            
+        //printf( "%x\n", patternTable[branchRegister] );
+
+        // Add the actual outcome to the current pattern in the Branch History Register
+        pushFront( &branchRegister, queueLength, actual );
+
+    }
 }
 
 /* Implement assignment 3 here */
