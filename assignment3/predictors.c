@@ -141,9 +141,6 @@ void assignment_1_simple() {
 /* Implement assignment 2 here */
 void assignment_2_GAg(int history) {
 
-    /*  enum STATE { TAKEN =0x01, NOT_TAKEN =0x00, 
-         CORRECT =0x10 };*/
-         
     // The Branch History Register
     const int queueLength =history <= 64 ? history : 64;
     bitQueue_t branchRegister =0; // this is the 'G' in Gag
@@ -152,11 +149,12 @@ void assignment_2_GAg(int history) {
     const uint64_t k = 1 << queueLength; // n bit queue length, table has 2^n entries
     counter_t patternTable[k]; // This is the 'g' in Gag
     
-    printf( "Gag: Branch History Register length is %d bits, %d PHT entries\n", queueLength, k );
+    printf( "GAg: Branch History Register length is %d bits, %d PHT entries\n", 
+            queueLength, k ); // May go away :-)
 
     // Initialize the PHT
     for( uint64_t i =0; i < k; i++ ) {
-        patternTable[i] =2;
+        patternTable[i] =2; // 'Weak taken'
     }
        
     uint32_t addr =0;
@@ -174,19 +172,14 @@ void assignment_2_GAg(int history) {
         if( predictor_predict( prediction, &actual ) )
             fprintf( stderr, "ERROR: couldn't call predictor_predict( ).\n" );
             
-        //printf( "%x\n", branchRegister );
-
         // Update the Pattern History Table to reflect the outcome
         if( actual && ( patternTable[branchRegister] < 3 ) )
             patternTable[branchRegister]++;
         else if( !actual && ( patternTable[branchRegister] > 0 ) )
             patternTable[branchRegister]--;
             
-        //printf( "%x\n", patternTable[branchRegister] );
-
         // Add the actual outcome to the current pattern in the Branch History Register
         pushFront( &branchRegister, queueLength, actual );
-
     }
 }
 
