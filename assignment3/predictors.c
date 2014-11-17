@@ -107,7 +107,6 @@ void assignment_1_simple() {
         }
             
         prediction = (state & TAKEN);
-
         if (predictor_predict(prediction, &actual)) {
             fprintf(stderr, "ERROR: couldn't call predictor_predict().\n");
         }
@@ -141,7 +140,7 @@ void assignment_2_GAg(int history) {
         // Use the most recent pattern in the Branch Register to lookup a prediction in the Pattern
         // Table.
         bool actual;
-        bool prediction = pattern_table[branch_register] > 2;
+        bool prediction = pattern_table[branch_register] >= 2;
         if (predictor_predict( prediction, &actual)) {
             fprintf(stderr, "ERROR: couldn't call predictor_predict().\n");
         }
@@ -202,7 +201,7 @@ void assignment_3_SAs(int history, int n_sets) {
 
         // Lookup a prediction.
         bool actual;
-        bool prediction = pattern_table[branch_history] > 2;
+        bool prediction = pattern_table[branch_history] >= 2;
         if (predictor_predict(prediction, &actual)) {
             fprintf(stderr, "ERROR: couldn't call predictor_predict().\n");
         }
