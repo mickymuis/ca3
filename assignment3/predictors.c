@@ -126,11 +126,16 @@ void assignment_2_GAg(int history) {
     // The Pattern History Table.
     const int queue_length = history <= 64 ? history : 64;
     const uint64_t k = 1 << queue_length; // n bit queue length, table has 2^n entries.
-    counter_t pattern_table[k]; // This is the 'g' in Gag.
+    counter_t* pattern_table = malloc(k * sizeof(*pattern_table)); // This is the 'g' in Gag.
+
+    if (!pattern_table) {
+        fprintf(stderr, "couldn't allocate memory for pattern_table.\n");
+        abort();
+    }
     
     // Initialize the PHT.
     for (uint64_t i = 0; i < k; i++) pattern_table[i] = 2; // 'Weak taken'.
-       
+
     uint32_t address = 0;
     while (predictor_getState() != DONE) {
         if (predictor_getNextBranch(&address)) {
@@ -152,7 +157,10 @@ void assignment_2_GAg(int history) {
         // Add the actual outcome to the current pattern in the Branch History Register.
         pushFront(&branch_register, queue_length, actual);
     }
+
+    free(pattern_table);
 }
+
 
 // Implement assignment 3 here.
 void assignment_3_SAs(int history, int n_sets) {
@@ -172,13 +180,24 @@ void assignment_3_SAs(int history, int n_sets) {
     // The per-set Pattern History Tables.
     const int queue_length = history <= 64 ? history : 64;
     const uint64_t k = 1 << queue_length; // n bit queue length, table has 2^n entries.
-    counter_t pattern_tables[k][n_sets]; // This is the 'g' in Gag.
+
+    // This is the 'g' in Gag.
+    counter_t** pattern_tables = malloc(n_sets * sizeof(*pattern_tables)); 
+    if (!pattern_tables) {
+        fprintf(stderr, "couldn't allocate memory for pattern_tables.\n");
+        abort();
+    }
     
     // Initialize the SPHTs.
     for (int j = 0; j < n_sets; j++) {
-        for (uint64_t i = 0; i < k; i++) {
-            pattern_tables[j][i] = 2; // 'Weak taken'.
+        pattern_tables[j] = malloc(k * sizeof(*pattern_tables[j]));
+
+        if (!pattern_tables[j]) {
+            fprintf(stderr, "couldn't allocate memory for pattern_tables.\n");
+            abort();
         }
+
+        for (uint64_t i = 0; i < k; i++) pattern_tables[j][i] = 2; // 'Weak taken'.
     }
 
     uint32_t address = 0;
@@ -192,7 +211,7 @@ void assignment_3_SAs(int history, int n_sets) {
         int set_index = (address >> 10) & 0x3;
 
         // Concatenate low order address bits to the set index to get the pattern index.
-        int pattern_index = (address << 2) | set_index;
+        uint32_t pattern_index = (address << 2) | set_index;
         pattern_index %= n_sets; // This simplifies to a mask for n_sets that are a power of two.
             
         // Get the branch history and pattern table.
@@ -213,6 +232,9 @@ void assignment_3_SAs(int history, int n_sets) {
         // Add the actual outcome to the current pattern in the Branch History Table.
         pushFront(&branch_history_table[set_index], queue_length, actual);
     }
+
+    for (int j = 0; j < n_sets; j++) free(pattern_tables[j]);
+    free(pattern_tables);
 }
 
 // Assignment 4: Change these parameters to your needs.
