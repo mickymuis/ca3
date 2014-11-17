@@ -122,18 +122,18 @@ void assignment_1_simple() {
 
 void assignment_2_GAg(int history) {
     // The Branch History Register.
-    const int queueLength = history <= 64 ? history : 64;
-    bitQueue_t branchRegister = 0; // This is the 'G' in Gag.
+    bitQueue_t branch_register = 0; // This is the 'G' in Gag.
              
     // The Pattern History Table.
-    const uint64_t k = 1 << queueLength; // n bit queue length, table has 2^n entries.
-    counter_t patternTable[k]; // This is the 'g' in Gag.
+    const int queue_length = history <= 64 ? history : 64;
+    const uint64_t k = 1 << queue_length; // n bit queue length, table has 2^n entries.
+    counter_t pattern_table[k]; // This is the 'g' in Gag.
     
     printf("GAg: Branch History Register length is %d bits, %" PRIu64 " PHT entries\n", 
-            queueLength, k); // May go away :-)
+            queue_length, k); // May go away :-)
 
     // Initialize the PHT.
-    for (uint64_t i = 0; i < k; i++) patternTable[i] = 2; // 'Weak taken'.
+    for (uint64_t i = 0; i < k; i++) pattern_table[i] = 2; // 'Weak taken'.
        
     uint32_t addr = 0;
     bool actual, prediction;
@@ -145,24 +145,33 @@ void assignment_2_GAg(int history) {
             
         // Use the most recent pattern in the Branch Register to lookup a prediction in the Pattern
         // Table.
-        prediction = patternTable[branchRegister] > 2;
-
+        prediction = pattern_table[branch_register] > 2;
         if (predictor_predict( prediction, &actual)) {
             fprintf(stderr, "ERROR: couldn't call predictor_predict().\n");
         }
             
         // Update the Pattern History Table to reflect the outcome.
-             if  (actual && (patternTable[branchRegister] < 3)) patternTable[branchRegister]++;
-        else if (!actual && (patternTable[branchRegister] > 0)) patternTable[branchRegister]--;
+             if  (actual && (pattern_table[branch_register] < 3)) pattern_table[branch_register]++;
+        else if (!actual && (pattern_table[branch_register] > 0)) pattern_table[branch_register]--;
             
         // Add the actual outcome to the current pattern in the Branch History Register.
-        pushFront(&branchRegister, queueLength, actual);
+        pushFront(&branch_register, queue_length, actual);
     }
 }
 
 // Implement assignment 3 here.
 void assignment_3_SAs(int history, int n_sets) {
-    always_x(false);
+    // The Branch History Table.
+    bitQueue_t branch_history_table[n_sets] = {0}; // This is the 'S' in Sas.
+    
+    // The Pattern History Tables.
+    const int queue_length = history <= 64 ? history : 64;
+    const uint64_t k = 1 << queue_length; // n bit queue length, table has 2^n entries.
+    counter_t pattern_tables[k][n_sets]; // This is the 'g' in Gag.
+    
+    // Initialize the PHT.
+    for (uint64_t i = 0; i < k; i++) pattern_table[i] = 2; // 'Weak taken'.
+
 }
 
 // Assignment 4: Change these parameters to your needs.
