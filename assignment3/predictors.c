@@ -69,6 +69,7 @@ void random_predictor() {
     }
 }
 
+
 /* Predict always true (taken) or false */
 void always_x(bool p) {
     /* Variable to store the prediction you predict for this branch. */
@@ -109,47 +110,46 @@ void always_x(bool p) {
     }
 }
 
-/* Implement assignment 1 here */
+
 void assignment_1_simple() { 
-    enum { TAKEN =0x01, NOT_TAKEN =0x00, 
-         CORRECT =0x10 } state =TAKEN | CORRECT;
+    enum {
+        TAKEN = 0x01,
+        NOT_TAKEN = 0x00, 
+        CORRECT = 0x10
+    } state = TAKEN | CORRECT;
        
-    uint32_t addr =0;
+    uint32_t addr = 0;
     bool actual, prediction;
 
-    while( predictor_getState( ) != DONE ) {
+    while (predictor_getState() != DONE) {
+        if (predictor_getNextBranch(&addr)) {
+            fprintf( stderr, "ERROR: couldn't get next branch.\n" );
+        }
+            
+        prediction = (state & TAKEN);
 
-    if( predictor_getNextBranch( &addr ) )
-        fprintf( stderr, "ERROR: couldn't get next branch.\n" );
-        
-    prediction = (state & TAKEN);
+        if (predictor_predict(prediction, &actual)) {
+            fprintf( stderr, "ERROR: couldn't call predictor_predict( ).\n" );
+        }
 
-    if( predictor_predict( prediction, &actual ) )
-        fprintf( stderr, "ERROR: couldn't call predictor_predict( ).\n" );
-
-    if( prediction != actual ) {
-        if( !(state & CORRECT) )
-            state =(~state) & TAKEN;
-        else
-            state &= ~CORRECT;
-    }
-    else
-        state |= CORRECT;
+        if (prediction != actual) {
+            if (!(state & CORRECT)) state = (~state) & TAKEN;
+            else state &= ~CORRECT;
+        } else state |= CORRECT;
     }
 }
 
-/* Implement assignment 2 here */
-void assignment_2_GAg(int history) {
 
+void assignment_2_GAg(int history) {
     // The Branch History Register
-    const int queueLength =history <= 64 ? history : 64;
+    const int queueLength = history <= 64 ? history : 64;
     bitQueue_t branchRegister =0; // this is the 'G' in Gag
              
     // The Pattern History Table
     const uint64_t k = 1 << queueLength; // n bit queue length, table has 2^n entries
     counter_t patternTable[k]; // This is the 'g' in Gag
     
-    printf( "GAg: Branch History Register length is %d bits, %d PHT entries\n", 
+    printf("GAg: Branch History Register length is %d bits, %d PHT entries\n", 
             queueLength, k ); // May go away :-)
 
     // Initialize the PHT
