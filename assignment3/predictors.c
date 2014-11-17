@@ -181,7 +181,7 @@ void assignment_3_SAs(int history, int n_sets) {
     const int queue_length = history <= 64 ? history : 64;
     const uint64_t k = 1 << queue_length; // n bit queue length, table has 2^n entries.
 
-    // This is the 'g' in Gag.
+    // This is the 's' in SAs.
     counter_t** pattern_tables = malloc(n_sets * sizeof(*pattern_tables)); 
     if (!pattern_tables) {
         fprintf(stderr, "couldn't allocate memory for pattern_tables.\n");
