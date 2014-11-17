@@ -1,3 +1,4 @@
 *.o
 tags
 assignment3/predictor
+assignment3/traces/*.trace

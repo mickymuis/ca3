@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
                 break;
             case '3':
                 prediction_algorithm = '3';
-                predictor_name = "Assignment_3_SAa";
+                predictor_name = "Assignment_3_SAs";
                 break;
             case '4':
                 prediction_algorithm = '4';

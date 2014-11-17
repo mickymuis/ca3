@@ -35,7 +35,7 @@ void random_predictor() {
     bool prediction = false;
 
     // Variable to store the the address of the branch.
-    uint32_t addr = 0;
+    uint32_t address = 0;
     
     // Variable to store the actual branch result (obtained from the predictor library).
     bool actual = false;
@@ -43,7 +43,7 @@ void random_predictor() {
     // Prediction loop, until tracefile is empty.
     while (predictor_getState() != DONE) {
         // Get the next branch address from the state machine.
-        if (predictor_getNextBranch(&addr) != 0) {
+        if (predictor_getNextBranch(&address) != 0) {
             fprintf(stderr, "ERROR: \"predictor_getNextBranch()\" called in "\
                    "a state it shouldn't be called!\n");
         }
@@ -66,7 +66,7 @@ void always_x(bool p) {
     bool prediction = p;
 
     // Variable to store the the address of the branch.
-    uint32_t addr = 0;
+    uint32_t address = 0;
     
     // Variable to store the actual branch result (obtained from the predictor library).
     bool actual = false;
@@ -74,7 +74,7 @@ void always_x(bool p) {
     // Prediction loop, until tracefile is empty.
     while (predictor_getState() != DONE) {
         // Get the next branch address from the state machine.
-        if (predictor_getNextBranch(&addr) != 0) {
+        if (predictor_getNextBranch(&address) != 0) {
             fprintf(stderr, "ERROR: \"predictor_getNextBranch()\" called in "\
                    "a state it shouldn't be called!\n");
         }
@@ -98,18 +98,18 @@ void assignment_1_simple() {
         CORRECT = 0x10
     } state = TAKEN | CORRECT;
        
-    uint32_t addr = 0;
+    uint32_t address = 0;
     bool actual, prediction;
 
     while (predictor_getState() != DONE) {
-        if (predictor_getNextBranch(&addr)) {
-            fprintf( stderr, "ERROR: couldn't get next branch.\n" );
+        if (predictor_getNextBranch(&address)) {
+            fprintf(stderr, "ERROR: couldn't get next branch.\n");
         }
             
         prediction = (state & TAKEN);
 
         if (predictor_predict(prediction, &actual)) {
-            fprintf( stderr, "ERROR: couldn't call predictor_predict( ).\n" );
+            fprintf(stderr, "ERROR: couldn't call predictor_predict().\n");
         }
 
         if (prediction != actual) {
@@ -129,23 +129,19 @@ void assignment_2_GAg(int history) {
     const uint64_t k = 1 << queue_length; // n bit queue length, table has 2^n entries.
     counter_t pattern_table[k]; // This is the 'g' in Gag.
     
-    printf("GAg: Branch History Register length is %d bits, %" PRIu64 " PHT entries\n", 
-            queue_length, k); // May go away :-)
-
     // Initialize the PHT.
     for (uint64_t i = 0; i < k; i++) pattern_table[i] = 2; // 'Weak taken'.
        
-    uint32_t addr = 0;
-    bool actual, prediction;
-
+    uint32_t address = 0;
     while (predictor_getState() != DONE) {
-        if (predictor_getNextBranch(&addr)) {
+        if (predictor_getNextBranch(&address)) {
             fprintf(stderr, "ERROR: couldn't get next branch.\n");
         }
             
         // Use the most recent pattern in the Branch Register to lookup a prediction in the Pattern
         // Table.
-        prediction = pattern_table[branch_register] > 2;
+        bool actual;
+        bool prediction = pattern_table[branch_register] > 2;
         if (predictor_predict( prediction, &actual)) {
             fprintf(stderr, "ERROR: couldn't call predictor_predict().\n");
         }
@@ -161,17 +157,63 @@ void assignment_2_GAg(int history) {
 
 // Implement assignment 3 here.
 void assignment_3_SAs(int history, int n_sets) {
-    // The Branch History Table.
-    bitQueue_t branch_history_table[n_sets] = {0}; // This is the 'S' in Sas.
+    // Round up n_sets to power of two.
+    // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    n_sets--;
+    n_sets |= n_sets >> 1;
+    n_sets |= n_sets >> 2;
+    n_sets |= n_sets >> 4;
+    n_sets |= n_sets >> 8;
+    n_sets |= n_sets >> 16;
+    n_sets++;
+
+    // The per-set Branch History Table.
+    bitQueue_t branch_history_table[4] = {0}; // This is the 'S' in Sas.
     
-    // The Pattern History Tables.
+    // The per-set Pattern History Tables.
     const int queue_length = history <= 64 ? history : 64;
     const uint64_t k = 1 << queue_length; // n bit queue length, table has 2^n entries.
     counter_t pattern_tables[k][n_sets]; // This is the 'g' in Gag.
     
-    // Initialize the PHT.
-    for (uint64_t i = 0; i < k; i++) pattern_table[i] = 2; // 'Weak taken'.
+    // Initialize the SPHTs.
+    for (int j = 0; j < n_sets; j++) {
+        for (uint64_t i = 0; i < k; i++) {
+            pattern_tables[j][i] = 2; // 'Weak taken'.
+        }
+    }
 
+    uint32_t address = 0;
+    while (predictor_getState() != DONE) {
+        if (predictor_getNextBranch(&address)) {
+            fprintf(stderr, "ERROR: couldn't get next branch.\n");
+        }
+
+        // Addresses in the same 1K bytes are part of the same set. Ignore bottom 10 bits. Get a
+        // 2-bit index.
+        int set_index = (address >> 10) & 0x3;
+
+        // Concatenate low order address bits to the set index to get the pattern index.
+        int pattern_index = (address << 2) | set_index;
+        pattern_index %= n_sets; // This simplifies to a mask for n_sets that are a power of two.
+            
+        // Get the branch history and pattern table.
+        bitQueue_t branch_history = branch_history_table[set_index];
+        counter_t* pattern_table = pattern_tables[pattern_index];
+
+        // Lookup a prediction.
+        bool actual;
+        bool prediction = pattern_table[branch_history] > 2;
+        if (predictor_predict(prediction, &actual)) {
+            fprintf(stderr, "ERROR: couldn't call predictor_predict().\n");
+        }
+            
+        // Update the Pattern History Table to reflect the outcome.
+             if  (actual && (pattern_table[branch_history] < 3)) pattern_table[branch_history]++;
+        else if (!actual && (pattern_table[branch_history] > 0)) pattern_table[branch_history]--;
+            
+        // Add the actual outcome to the current pattern in the Branch History Table.
+        pushFront(&branch_history_table[set_index], queue_length, actual);
+    }
 }
 
 // Assignment 4: Change these parameters to your needs.
