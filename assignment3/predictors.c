@@ -28,6 +28,12 @@ void pushFront( bitQueue_t* q, uint16_t length, bool b ) {
     // (*q) = ((*q) >> 1) | ((b ? 0x1 : 0x0) << (length -1));
 }
 
+unsigned popcnt(uint32_t n) {     
+    unsigned c;
+    for (c = 0; n; c++) n &= n - 1;
+    return c;
+}
+
 
 // Random prediction.
 void random_predictor() {
@@ -136,8 +142,8 @@ void assignment_2_GAg(int history) {
     // Initialize the PHT.
     for (uint64_t i = 0; i < k; i++) pattern_table[i] = 2; // 'Weak taken'.
 
-    uint32_t address = 0;
     while (predictor_getState() != DONE) {
+        uint32_t address = 0;
         if (predictor_getNextBranch(&address)) {
             fprintf(stderr, "ERROR: couldn't get next branch.\n");
         }
@@ -200,8 +206,8 @@ void assignment_3_SAs(int history, int n_sets) {
         for (uint64_t i = 0; i < k; i++) pattern_tables[j][i] = 2; // 'Weak taken'.
     }
 
-    uint32_t address = 0;
     while (predictor_getState() != DONE) {
+        uint32_t address = 0;
         if (predictor_getNextBranch(&address)) {
             fprintf(stderr, "ERROR: couldn't get next branch.\n");
         }
@@ -211,7 +217,7 @@ void assignment_3_SAs(int history, int n_sets) {
         int set_index = (address >> 10) & 0x3;
 
         // Concatenate low order address bits to the set index to get the pattern index.
-        uint32_t pattern_index = (address << 2) | set_index;
+        uint32_t pattern_index = (address & 0xfffffffc) | set_index;
         pattern_index %= n_sets; // This simplifies to a mask for n_sets that are a power of two.
             
         // Get the branch history and pattern table.
@@ -238,8 +244,74 @@ void assignment_3_SAs(int history, int n_sets) {
 }
 
 // Assignment 4: Change these parameters to your needs.
-void assignment_4_your_own(int k, int n) {
-    always_x(false);
+void assignment_4_your_own(int history, int n_sets) {
+    // Round up n_sets to power of two.
+    // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    n_sets--;
+    n_sets |= n_sets >> 1;
+    n_sets |= n_sets >> 2;
+    n_sets |= n_sets >> 4;
+    n_sets |= n_sets >> 8;
+    n_sets |= n_sets >> 16;
+    n_sets++;
+
+    bitQueue_t branch_history_table[4] = {0};
+    
+    const int queue_length = history <= 64 ? history : 64;
+    const uint64_t k = 1 << queue_length;
+
+    counter_t** pattern_tables = malloc(n_sets * sizeof(*pattern_tables)); 
+    if (!pattern_tables) {
+        fprintf(stderr, "couldn't allocate memory for pattern_tables.\n");
+        abort();
+    }
+    
+    for (int j = 0; j < n_sets; j++) {
+        pattern_tables[j] = malloc(k * sizeof(*pattern_tables[j]));
+
+        if (!pattern_tables[j]) {
+            fprintf(stderr, "couldn't allocate memory for pattern_tables.\n");
+            abort();
+        }
+
+        for (uint64_t i = 0; i < k; i++) pattern_tables[j][i] = 2; // 'Weak taken'.
+    }
+
+    while (predictor_getState() != DONE) {
+        uint32_t address = 0;
+        if (predictor_getNextBranch(&address)) {
+            fprintf(stderr, "ERROR: couldn't get next branch.\n");
+        }
+
+        // Addresses in the same 1K bytes are part of the same set. Ignore bottom 10 bits. Get a
+        // 2-bit index.
+        int set_index = (address >> 10) & 0x3;
+
+        // Concatenate low order address bits to the set index to get the pattern index.
+        uint32_t pattern_index = (address & 0xfffffffc) | set_index;
+        pattern_index %= n_sets; // This simplifies to a mask for n_sets that are a power of two.
+            
+        // Get the branch history and pattern table.
+        bitQueue_t branch_history = branch_history_table[set_index];
+        counter_t* pattern_table = pattern_tables[pattern_index];
+
+        // Lookup a prediction.
+        bool actual;
+        bool prediction = pattern_table[branch_history] >= 2;
+        if (predictor_predict(prediction, &actual)) {
+            fprintf(stderr, "ERROR: couldn't call predictor_predict().\n");
+        }
+            
+        // Update the Pattern History Table to reflect the outcome.
+             if  (actual && (pattern_table[branch_history] < 3)) pattern_table[branch_history]++;
+        else if (!actual && (pattern_table[branch_history] > 0)) pattern_table[branch_history]--;
+            
+        // Add the actual outcome to the current pattern in the Branch History Table.
+        pushFront(&branch_history_table[set_index], queue_length, actual);
+    }
+
+    for (int j = 0; j < n_sets; j++) free(pattern_tables[j]);
+    free(pattern_tables);
 }
 
 // Bonus: Change these parameters to your needs.
