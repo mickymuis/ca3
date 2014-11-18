@@ -237,13 +237,8 @@ void assignment_3_SAs(int history, int n_sets) {
     free(pattern_tables);
 }
 
-// Assignment 4: Change these parameters to your needs.
-void assignment_4_your_own(int k, int n) {
-    always_x(false);
-}
-
 // GAg with adaptive counter
-void bonus_1( int history ) {
+void assignment_4_your_own( int history ) {
     // The Branch History Register.
     bitQueue_t branch_register = 0; // This is the 'G' in Gag.
              
@@ -260,7 +255,7 @@ void bonus_1( int history ) {
     // Initialize the PHT.
     for (uint64_t i = 0; i < k; i++) {
         // Combination of 'Weak taken' and moderate counter accuracy
-        pattern_table[i] = 4 | (4<<4); 
+        pattern_table[i] = 4 | (2<<4); 
     }
 
     uint32_t address = 0;
@@ -273,8 +268,10 @@ void bonus_1( int history ) {
         // Table.
         bool actual;
         counter_t counter =pattern_table[branch_register];
-        counter_t counter_accuracy =(counter >> 4) & 0xF;
-        counter &= 0xF;
+        // Counter: lowest 5 bits, counter accuracy: highest 3 bits
+        // Counter_accuracy is stored as a multiple of two
+        counter_t counter_accuracy =((counter & 0xE0) >> 4) ;
+        counter &= 0x1F;
         
         bool prediction = counter >= counter_accuracy;
         if (predictor_predict( prediction, &actual)) {
@@ -282,15 +279,16 @@ void bonus_1( int history ) {
         }
         
         // Adjust the counter's accuracy based on hit or miss
-        if  (actual == prediction && (counter_accuracy < 8)) { 
-            counter_accuracy++;
-            if( counter < 2 * counter_accuracy ) // Scale the counter accordingly
-                counter++;
+        // We take steps of two because the lowest bit will not be stored
+        if  (actual == prediction && (counter_accuracy < 14)) { 
+            counter_accuracy+=2;
+            // Scale the counter accordingly
+            if( counter < (2 * counter_accuracy) - 2 ) counter+=2;
         }
-        else if (actual != prediction && (counter_accuracy > 1)){
-            counter_accuracy--;
-            if( counter > 0 ) // Scale the counter accordingly
-                counter --;
+        else if (actual != prediction && (counter_accuracy > 3)){
+            counter_accuracy-=2;
+            // Scale the counter accordingly
+            if( counter > 1 ) counter -=2;
          }
             
         // Update the Pattern History Table to reflect the outcome.
@@ -299,6 +297,69 @@ void bonus_1( int history ) {
         else if (!actual && (counter > 0)) counter--;
         
         pattern_table[branch_register] =counter | (counter_accuracy << 4);
+            
+        // Add the actual outcome to the current pattern in the Branch History Register.
+        pushFront(&branch_register, queue_length, actual);
+    }
+
+    free(pattern_table);
+}
+
+// GAg with Global Adaptive Counter
+void bonus_1(int history) {
+    // The Branch History Register.
+    bitQueue_t branch_register = 0; // This is the 'G' in Gag.
+             
+    // The Pattern History Table.
+    const int queue_length = history <= 64 ? history : 64;
+    const uint64_t k = 1 << queue_length; // n bit queue length, table has 2^n entries.
+    counter_t* pattern_table = malloc(k * sizeof(*pattern_table)); // This is the 'g' in Gag.
+
+    if (!pattern_table) {
+        fprintf(stderr, "couldn't allocate memory for pattern_table.\n");
+        abort();
+    }
+    
+    // Initialize the PHT.
+    for (uint64_t i = 0; i < k; i++) {
+        // Combination of 'Weak taken' and moderate counter accuracy
+        pattern_table[i] = 4; 
+    }
+    
+    // The global accuracy counter
+    counter_t counter_accuracy =2;
+
+    uint32_t address = 0;
+    while (predictor_getState() != DONE) {
+        if (predictor_getNextBranch(&address)) {
+            fprintf(stderr, "ERROR: couldn't get next branch.\n");
+        }
+            
+        // Use the most recent pattern in the Branch Register to lookup a prediction in the Pattern
+        // Table.
+        bool actual;
+        // Counter is 4 bits here
+        counter_t counter =pattern_table[branch_register];
+        
+        bool prediction = counter >= counter_accuracy;
+        if (predictor_predict( prediction, &actual)) {
+            fprintf(stderr, "ERROR: couldn't call predictor_predict().\n");
+        }
+        
+        // Adjust the counter's accuracy based on hit or miss
+        if  (actual == prediction && (counter_accuracy < 7)) { 
+            counter_accuracy+=1;
+        }
+        else if (actual != prediction && (counter_accuracy > 2)){
+            counter_accuracy-=1;
+         }
+            
+        // Update the Pattern History Table to reflect the outcome.
+        // The counter is bounded by its accuracy
+             if  (actual && (counter < (counter_accuracy * 2) - 1 )) counter++;
+        else if (!actual && (counter > 0)) counter--;
+        
+        pattern_table[branch_register] =counter;
             
         // Add the actual outcome to the current pattern in the Branch History Register.
         pushFront(&branch_register, queue_length, actual);
