@@ -16,7 +16,7 @@ typedef uint32_t bitQueue32_t;
 typedef uint64_t bitQueue_t; // general oversized type.
 
 /* Substitute for a 2 bit counter */
-typedef int8_t counter_t;
+typedef uint8_t counter_t;
 
 /* pushFront_*
  * Adds a bit to the head of the queue (the least significant bit)
@@ -52,7 +52,7 @@ void assignment_3_SAs(int history, int n_sets);
 void assignment_4_your_own(int k, int n);
 
 /* Bonus: Change these parameters to your needs */
-void bonus_1();
+void bonus_1(int history);
 
 /* Bonus: Change these parameters to your needs */
 void bonus_2();

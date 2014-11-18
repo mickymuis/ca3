@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
             assignment_4_your_own(k, n);
             break;
         case '5':
-            bonus_1();
+            bonus_1(k);
             break;
         case '6':
             bonus_2();

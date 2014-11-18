@@ -68,7 +68,13 @@ taken.
 ``pushFront( &branchRegister, k, actual )``
 
 The GAg is a fairly productive predictor. The hitrates range from 70% all the
-way up to 94% (fib30, k=18). 
+way up to 94% (fib30, k=18). Its biggest advantage is the size and hardware cost
+of the implementation - which are theoretically the smallest of the predictors
+described in the article (k + 2(2^k) for a given k). 
+Simplicity is also an advantage: one register and a direct-mapped cache are
+sufficient for the implementation of GAg. The biggest downside is that due to
+its global nature, it is less accurate in real-life than its more complex, address-
+based peers.
 
 *****************
 The SAs predictor
