@@ -3,6 +3,7 @@ CC = gcc
 CFLAGS = -std=c99 -Wall -D_POSIX_C_SOURCE=200809L -O3 -m64 -march=native
 TRACE = sample
 ARGS = -r -s
+SHELL = /bin/bash
 
 all: predictor
 
