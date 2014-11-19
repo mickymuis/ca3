@@ -81,7 +81,7 @@ The SAs predictor
 *****************
 
 SAs is easily implemented after GAg. Instead of taking just the global history and using that index
-a global pattern table you create sets of histories, and sets of patterns based on the address of
+a global pattern table to create sets of histories, and sets of patterns based on the address of
 the branch. We had 4 BHRs in a table, using the 11th and 12th least significant bits from the
 address to index them. To access the pattern table we concatenated those previous two bits with
 however many low-order bits of the address are needed to uniquely identify ``n_sets``.
@@ -110,8 +110,7 @@ streak of the same prediction may influence the counter as much as an erratic pa
 Enlarging the counter gives emphasis on the long repeating streaks, but there is a 
 trade-off here:
 
-- The smaller the counter, the faster it 'reacts' to trends. It also picks up a
-lot of 'noise' though.
+- The smaller the counter, the faster it 'reacts' to trends. It also picks up a lot of 'noise' though.
 - The bigger the counter, the more a random pattern within a streak is smoothed out. At the cost of the reaction to short patterns and of course at the cost of much more memory.
 
 The Adaptive Counter splits the counter buffers (here 8 bit) in two: the low-order bits
