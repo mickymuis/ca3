@@ -125,6 +125,7 @@ The counter (N) is incremented/decremented at the same
 time to 'scale' its range. The value for M now sets the bounds for N, i.e. the range 
 for N is [0..2M-1]. Every value greater or equal to M means 'taken', otherwise not taken.
 So the most notable changes as opposed to standard GAg are:
+
 - ``prediction = N >= M`` instead of ``prediction = N >= 2``
 - ``if( actual && N < 2*M-1 ) N++`` instead of ``if( actual && N < 3 ) N++``
 
