@@ -243,8 +243,8 @@ void assignment_3_SAs(int history, int n_sets) {
     free(pattern_tables);
 }
 
-// Assignment 4: Change these parameters to your needs.
-void assignment_4_your_own(int history, int n_sets) {
+// GAg with adaptive counter
+void assignment_4_your_own(int history) {
     // The Branch History Register.
     bitQueue_t branch_register = 0; // This is the 'G' in Gag.
              
@@ -261,7 +261,7 @@ void assignment_4_your_own(int history, int n_sets) {
     // Initialize the PHT.
     for (uint64_t i = 0; i < k; i++) {
         // Combination of 'Weak taken' and moderate counter accuracy.
-        pattern_table[i] = 4 | (4<<4); 
+        pattern_table[i] = 4 | (2<<4); 
     }
 
     uint32_t address = 0;
@@ -274,8 +274,11 @@ void assignment_4_your_own(int history, int n_sets) {
         // Table.
         bool actual;
         counter_t counter = pattern_table[branch_register];
-        counter_t counter_accuracy = (counter >> 4) & 0xF;
-        counter &= 0xF;
+
+        // Counter: lowest 5 bits, counter accuracy: highest 3 bits
+        // Counter_accuracy is stored as a multiple of two
+        counter_t counter_accuracy = ((counter & 0xE0) >> 4) ;
+        counter &= 0x1F;
         
         bool prediction = counter >= counter_accuracy;
         if (predictor_predict(prediction, &actual)) {
@@ -283,17 +286,20 @@ void assignment_4_your_own(int history, int n_sets) {
         }
         
         // Adjust the counter's accuracy based on hit or miss.
-        if  (actual == prediction && (counter_accuracy < 8)) { 
-            counter_accuracy++;
-            if (counter < 2 * counter_accuracy) counter++; // Scale the counter accordingly.
-        } else if (actual != prediction && (counter_accuracy > 1)) {
-            counter_accuracy--;
-            if (counter > 0) counter--; // Scale the counter accordingly.
-         }
+        // We take steps of two because the lowest bit will not be stored.
+        if (actual == prediction && (counter_accuracy < 14)) { 
+            // Scale the counter accordingly.
+            counter_accuracy += 2;
+            if (counter < (2 * counter_accuracy) - 2) counter += 2;
+        } else if (actual != prediction && (counter_accuracy > 3)) {
+            counter_accuracy -= 2;
+            // Scale the counter accordingly.
+            if (counter > 1) counter -= 2;
+        }
             
         // Update the Pattern History Table to reflect the outcome.
         // The counter is bounded by its accuracy.
-             if  (actual && (counter < (counter_accuracy * 2) - 1 )) counter++;
+             if  (actual && (counter < (counter_accuracy * 2) - 1)) counter++;
         else if (!actual && (counter > 0)) counter--;
         
         pattern_table[branch_register] = counter | (counter_accuracy << 4);

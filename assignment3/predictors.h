@@ -49,7 +49,7 @@ void assignment_2_GAg(int history);
 void assignment_3_SAs(int history, int n_sets);
 
 /* Assignment 4: Change these parameters to your needs */
-void assignment_4_your_own(int k, int n);
+void assignment_4_your_own(int history);
 
 /* Bonus: Change these parameters to your needs */
 void bonus_1(int history);

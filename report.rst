@@ -91,6 +91,60 @@ from 70% to 80%, but also uses a lot more memory. It's probably better suited fo
 not for embedded or small CPUs.
 
 
-**********
-Finally...
-**********
+*****************************
+The GAg with Adaptive Counter
+*****************************
+
+For our own prediction algorithm we focussed on the way the counter is maintained 
+in the various prediction algorithms. For the sake of simplicity, we took the
+previously implemented GAg and modified its counter to 'anticipate' on the program
+flow, hence the name 'Adaptive Counter'. We will briefly lineout how it differs 
+from the standard counter below.
+
+The 2 bit counter is a simple state machine with four states. Two of them result in
+the prediction 'taken', two in 'not taken'. Based on the actual outcome of the
+prediction, the counter is either incremented (taken) or decremented (not taken).
+This gives a rough estimate of the probability the pattern will be taken/not taken
+again. The range of the counter is very limited though, which means a long repeating
+streak of the same prediction may influence the counter as much as an erratic pattern.
+Enlarging the counter gives emphasis on the long repeating streaks, but there is a 
+trade-off here:
+
+- The smaller the counter, the faster it 'reacts' to trends. It also picks up a
+lot of 'noise' though.
+- The bigger the counter, the more a random pattern within a streak is smoothed out. At the cost of the reaction to short patterns and of course at the cost of much more memory.
+
+The Adaptive Counter splits the counter buffers (here 8 bit) in two: the low-order bits
+function the same as before, the high-order bits count the hits and misses.
+In our implementation the 'counter' field is 5 bits [0..31], the 'counter accuracy' field
+is 3 bits but is stored as a power of two (shifted four bits right) so its range 
+is [0..15].
+
+On every hit, the accuracy counter (M) is increased with its range. For every miss,
+M is decreased until two (the lowest bit is not stored). 
+The counter (N) is incremented/decremented at the same
+time to 'scale' its range. The value for M now sets the bounds for N, i.e. the range 
+for N is [0..2M-1]. Every value greater or equal to M means 'taken', otherwise not taken.
+So the most notable changes as opposed to standard GAg are:
+- ``prediction = N >= M`` instead of ``prediction = N >= 2``
+- ``if( actual && N < 2*M-1 ) N++`` instead of ``if( actual && N < 3 ) N++``
+
+One can see the value of M is a 'confidence level' of the predictor. If M is
+high, changes to the pattern will take more time to affect the predictor. This 
+way, noise is smoothed out. On the other hand, if M is small - it will be no smaller than 2 -
+the predictor is easily affected by the hits and misses.
+
+*Evaluation*
+
+In almost all cases, the GAg with Adaptive Counter scores better than the original GAg.
+The differences are not dramatic, but still in the range of 0.5 to 2% more hits (k=8).
+Unfortunately, the implementation also costs four times as much memory - 2 bits
+vs. 8 bits. There are cases, however, where implementing an Adaptive Counter gives a
+larger performance increase than multiplying k by four (example: k=6 and k=8).
+
+*A global Adaptive Counter*
+
+Implemented in the bonus1() function is also an attempt on a GAg with a Global Adaptive Counter.
+This takes only half the memory of the above implementation, plus a 3 bit global accuracy counter (M).
+The counter (N) is 4 bits in this implementation. Tests show that its performance can differ
+very little from the other Adaptive Counter implementation for certain k (eg. k=8).
